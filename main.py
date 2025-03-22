@@ -1,25 +1,37 @@
 from extractor.agents.equity_agent import agent as equity_agent
 from extractor.agents.account_summary_agent import agent as account_summary_agent
-from extractor.schema import EquityDetail, AccountSummary
+from extractor.agents.alternative_assets_detail_agent import agent as alternative_assets_agent
+from extractor.agents.portfolio_activity_detail_agent import agent as portfolio_activity_agent
+from extractor.agents.transactions_summary_agent import agent as transactions_summary_agent
+from extractor.agents.fixed_income_agent import agent as fixed_income_agent
+from extractor.agents.trade_activity_agent import agent as trade_activity_agent
+from extractor.schema import EquityDetail, AccountSummary, AlternativeAssetDetailItem, PortfolioActivityDetailItem, TransactionsSummary, FixedIncomeItem, TradeActivityItem
 from extractor.vector_db  import DocumentProcessor
 from dataclasses import dataclass
 import asyncio
 import json
-from typing  import Callable
-
+from typing  import Callable, List
+from devtools import debug
 from pydantic_ai import Agent, RunContext
 from pydantic import BaseModel
 from config import Config
+from extractor import logger
+from pydantic_ai.usage import UsageLimits
 
 
 class FinalResult(BaseModel):
     equity_details: EquityDetail
     account_summary: AccountSummary
+    alternative_assets: List[AlternativeAssetDetailItem]
+    portfolio_activity: List[PortfolioActivityDetailItem]
+    transactions_summary: List[TransactionsSummary]
+    fixed_income: List[FixedIncomeItem]
+    trade_activity: List[TradeActivityItem]
 
 
 @dataclass
 class Deps:
-    file_path: str = r"C:\Users\Albia\Desktop\Aimleap\pdf_extraction\pydantic_agents_flow\input_files\JPM - x1004 - Statement (1).pdf"
+    file_path: str = Config.filepath   # r"C:\Users\Albia\Desktop\Aimleap\pdf_extraction\pydantic_agents_flow\input_files\JPM - x1004 - Statement (1).pdf"
     doc_processor: DocumentProcessor = DocumentProcessor()
     search: Callable = doc_processor.vector_db.search
 
@@ -42,17 +54,45 @@ manager_agent = Agent(
     """
 )
 
+logger.info("Account Manager Agent Initialized")
+
+
 
 @manager_agent.tool
 async def equity_extraction(ctx: RunContext, query: str) -> EquityDetail:
-    result = await equity_agent.run(query, deps=ctx.deps)
+    result = await equity_agent.run(query, deps=ctx.deps,usage_limits=UsageLimits(request_tokens_limit=700,response_tokens_limit=500)
+)
     return result.data
 
 @manager_agent.tool
 async def account_summary_extraction(ctx: RunContext, query: str) -> AccountSummary:
-    result = await account_summary_agent.run(query, deps=ctx.deps)
+    result = await account_summary_agent.run(query, deps=ctx.deps,usage_limits=UsageLimits(request_tokens_limit=300,response_tokens_limit=100))
     return result.data
 
+@manager_agent.tool
+async def alternative_assets_extraction(ctx: RunContext, query: str) -> List[AlternativeAssetDetailItem]:
+    result = await alternative_assets_agent.run(query, deps=ctx.deps,usage_limits=UsageLimits(request_tokens_limit=500,response_tokens_limit=200))
+    return result.data
+
+@manager_agent.tool
+async def portfolio_activity_extraction(ctx: RunContext, query: str) -> List[PortfolioActivityDetailItem]:
+    result = await portfolio_activity_agent.run(query, deps=ctx.deps,usage_limits=UsageLimits(request_tokens_limit=200,response_tokens_limit=100))
+    return result.data
+
+@manager_agent.tool
+async def transactions_summary_extraction(ctx: RunContext, query: str) -> List[TransactionsSummary]:
+    result = await transactions_summary_agent.run(query, deps=ctx.deps,usage_limits=UsageLimits(request_tokens_limit=500,response_tokens_limit=300))
+    return result.data
+
+@manager_agent.tool
+async def fixed_income_extraction(ctx: RunContext, query: str) -> List[FixedIncomeItem]:
+    result = await fixed_income_agent.run(query, deps=ctx.deps,usage_limits=UsageLimits(request_tokens_limit=300,response_tokens_limit=200))
+    return result.data
+
+@manager_agent.tool
+async def trade_activity_extraction(ctx: RunContext, query: str) -> List[TradeActivityItem]:
+    result = await trade_activity_agent.run(query, deps=ctx.deps,usage_limits=UsageLimits(request_tokens_limit=700,response_tokens_limit=200))
+    return result.data
 
 
 async def main():
@@ -65,9 +105,11 @@ async def main():
     - Fixed income securities (names, maturity dates, coupon rates, prices, quantities, market values)
     - Trade activity (dates, transaction types, descriptions, quantities, prices, amounts)""", 
             deps=Deps(),
-            result_type=FinalResult
+            result_type=FinalResult,
+            usage_limits=UsageLimits(request_tokens_limit=3000,response_tokens_limit=500)
     )
-    
+
+    debug(result)
     result = json.dumps(result.data.model_dump(), indent=4)
     print(result)
     

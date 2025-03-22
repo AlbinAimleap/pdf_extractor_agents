@@ -3,6 +3,7 @@ from pydantic_ai import Agent, RunContext
 from extractor.schema import AccountSummary
 from typing import List
 from config import Config
+from extractor import logger
 
 
 agent = Agent(
@@ -13,6 +14,8 @@ agent = Agent(
     including Total Short Term Realized Gain/Loss, Total Long Term Realized Gain/Loss, and Total Realized Gain/Loss.
     """
 )
+logger.info("Account Summary Agent Initialized")
+
 
 @agent.tool
 def account_summary_extraction(ctx: RunContext, query: str) -> List[str]:

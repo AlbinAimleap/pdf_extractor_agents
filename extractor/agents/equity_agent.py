@@ -2,6 +2,7 @@ from pydantic_ai import Agent, RunContext
 from extractor.schema import EquityDetail
 from  typing import List
 from config import Config
+from extractor import logger
 
 
 agent = Agent(
@@ -35,6 +36,7 @@ agent = Agent(
      Format the extracted data according to the EquityDetailItem structure, with each equity position as a separate entry in the equity_details list.    """
     )
 
+logger.info("Account Equity Agent Initialized")
 
 @agent.tool
 def equity_extraction(ctx: RunContext, query: str) -> List[str]:
