@@ -17,6 +17,7 @@ from pydantic import BaseModel
 from config import Config
 from extractor import logger
 from pydantic_ai.usage import UsageLimits
+from pathlib import Path
 
 
 class FinalResult(BaseModel):
@@ -31,7 +32,7 @@ class FinalResult(BaseModel):
 
 @dataclass
 class Deps:
-    file_path: str = Config.filepath   # r"C:\Users\Albia\Desktop\Aimleap\pdf_extraction\pydantic_agents_flow\input_files\JPM - x1004 - Statement (1).pdf"
+    file_path: str = Config.filepath
     doc_processor: DocumentProcessor = DocumentProcessor()
     search: Callable = doc_processor.vector_db.search
 
@@ -60,58 +61,81 @@ logger.info("Account Manager Agent Initialized")
 
 @manager_agent.tool
 async def equity_extraction(ctx: RunContext, query: str) -> EquityDetail:
-    result = await equity_agent.run(query, deps=ctx.deps,usage_limits=UsageLimits(request_tokens_limit=700,response_tokens_limit=500)
-)
+    result = await equity_agent.run(query, deps=ctx.deps)
     return result.data
 
 @manager_agent.tool
 async def account_summary_extraction(ctx: RunContext, query: str) -> AccountSummary:
-    result = await account_summary_agent.run(query, deps=ctx.deps,usage_limits=UsageLimits(request_tokens_limit=300,response_tokens_limit=100))
+    result = await account_summary_agent.run(query, deps=ctx.deps)
     return result.data
 
 @manager_agent.tool
 async def alternative_assets_extraction(ctx: RunContext, query: str) -> List[AlternativeAssetDetailItem]:
-    result = await alternative_assets_agent.run(query, deps=ctx.deps,usage_limits=UsageLimits(request_tokens_limit=500,response_tokens_limit=200))
+    result = await alternative_assets_agent.run(query, deps=ctx.deps)
     return result.data
 
 @manager_agent.tool
 async def portfolio_activity_extraction(ctx: RunContext, query: str) -> List[PortfolioActivityDetailItem]:
-    result = await portfolio_activity_agent.run(query, deps=ctx.deps,usage_limits=UsageLimits(request_tokens_limit=200,response_tokens_limit=100))
+    result = await portfolio_activity_agent.run(query, deps=ctx.deps)
     return result.data
 
 @manager_agent.tool
 async def transactions_summary_extraction(ctx: RunContext, query: str) -> List[TransactionsSummary]:
-    result = await transactions_summary_agent.run(query, deps=ctx.deps,usage_limits=UsageLimits(request_tokens_limit=500,response_tokens_limit=300))
+    result = await transactions_summary_agent.run(query, deps=ctx.deps)
     return result.data
 
 @manager_agent.tool
 async def fixed_income_extraction(ctx: RunContext, query: str) -> List[FixedIncomeItem]:
-    result = await fixed_income_agent.run(query, deps=ctx.deps,usage_limits=UsageLimits(request_tokens_limit=300,response_tokens_limit=200))
+    result = await fixed_income_agent.run(query, deps=ctx.deps)
     return result.data
 
 @manager_agent.tool
 async def trade_activity_extraction(ctx: RunContext, query: str) -> List[TradeActivityItem]:
-    result = await trade_activity_agent.run(query, deps=ctx.deps,usage_limits=UsageLimits(request_tokens_limit=700,response_tokens_limit=200))
+    result = await trade_activity_agent.run(query, deps=ctx.deps)
     return result.data
 
 
 async def main():
-    result = await manager_agent.run("""Please extract all available financial records from the statement including:
-    - Equity details (names, tickers, prices, quantities, values, cost basis, unrealized gains/losses, estimated income, yields)
-    - Account summary (short term and long term realized gains/losses, total realized gains/losses, unrealized gains/losses)
-    - Alternative asset details (names, prices, quantities, estimated values, costs)
-    - Transaction summaries (beginning and ending cash balances)
-    - Portfolio activity details (settlement dates, types, descriptions, quantities, amounts, realized gains/losses)
-    - Fixed income securities (names, maturity dates, coupon rates, prices, quantities, market values)
-    - Trade activity (dates, transaction types, descriptions, quantities, prices, amounts)""", 
+    result = await manager_agent.run(
+            """Please extract all available financial records from the statement including:
+            - Equity details (names, tickers, prices, quantities, values, cost basis, unrealized gains/losses, estimated income, yields)
+            - Account summary (short term and long term realized gains/losses, total realized gains/losses, unrealized gains/losses)
+            - Alternative asset details (names, prices, quantities, estimated values, costs)
+            - Transaction summaries (beginning and ending cash balances)
+            - Portfolio activity details (settlement dates, types, descriptions, quantities, amounts, realized gains/losses)
+            - Fixed income securities (names, maturity dates, coupon rates, prices, quantities, market values)
+            - Trade activity (dates, transaction types, descriptions, quantities, prices, amounts)""", 
             deps=Deps(),
             result_type=FinalResult,
-            usage_limits=UsageLimits(request_tokens_limit=3000,response_tokens_limit=500)
+            usage_limits=UsageLimits(request_tokens_limit=10000,response_tokens_limit=5000)
     )
 
     debug(result)
     result = json.dumps(result.data.model_dump(), indent=4)
     print(result)
-    
+    return result
+
+
+async def extractor_agent(file: str):
+    filepath: Path = Path(file)
+    result = await manager_agent.run(
+            """Please extract all available financial records from the statement including:
+            - Equity details (names, tickers, prices, quantities, values, cost basis, unrealized gains/losses, estimated income, yields)
+            - Account summary (short term and long term realized gains/losses, total realized gains/losses, unrealized gains/losses)
+            - Alternative asset details (names, prices, quantities, estimated values, costs)
+            - Transaction summaries (beginning and ending cash balances)
+            - Portfolio activity details (settlement dates, types, descriptions, quantities, amounts, realized gains/losses)
+            - Fixed income securities (names, maturity dates, coupon rates, prices, quantities, market values)
+            - Trade activity (dates, transaction types, descriptions, quantities, prices, amounts)""", 
+            deps=Deps(file_path=filepath),
+            result_type=FinalResult,
+            usage_limits=UsageLimits(request_tokens_limit=10000,response_tokens_limit=5000)
+    )
+    result = result.data.model_dump()
+    return result
+
+
 if __name__ == "__main__":
+    import asyncio
     asyncio.run(main())
+    

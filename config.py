@@ -2,7 +2,7 @@
 from pydantic_ai import Agent
 
 class Config:
-    model_manager: str = "groq:llama-3.3-70b-versatile"
-    model_sub_agent: str = "groq:llama-3.3-70b-versatile"
+    model_manager: str = "openai:gpt-4o"
+    model_sub_agent: str = "openai:gpt-4o"
 
-    filepath: str  = r"C:\Users\DELL\Desktop\Aimleap\pdf_extractor_agents\input\JPM - x1004 - Statement (1).pdf"
+    filepath: str  = r"C:\Users\Albia\Desktop\Aimleap\pdf_extraction\pydantic_agents_flow\input_files\JPM - x1004 - Statement (1).pdf"
