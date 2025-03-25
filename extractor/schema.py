@@ -41,6 +41,10 @@ class AccountSummary(BaseModel):
     total_lt_realized_gain_loss: float
     total_realized_gain_loss: float
     unrealized_gain_loss: float
+    account_name: str
+    account_number: int
+    date_of_statement: str
+    name_of_custodian: str = Field(description="Date range (e.g., '1/1/2023 - 12/31/2023')")
 
 class FixedIncomeItem(BaseModel):
     security_name: Optional[str] = None

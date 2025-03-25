@@ -1,5 +1,6 @@
-from pydantic_ai import Agent, RunContext
+from pydantic_ai import Agent, RunContext, Tool
 from extractor.schema import AlternativeAssetDetailItem
+from extractor.tools import vector_search
 from typing import List
 from config import Config
 from extractor import logger
@@ -27,12 +28,21 @@ agent = Agent(
     - Proper handling of any currency symbols or notations
 
     Format the extracted data according to the AlternativeAssetDetailItem structure, with each alternative asset position as a separate entry in the list.
-    """
+    """,
+    tools=[
+        Tool(
+            vector_search,
+            description="""
+            Search for relevant financial statements based on the query.
+            """,
+            takes_ctx=True
+        ),
+    ]
 )
 
 logger.info("Account Alternative Asset Initialized")
 
-@agent.tool
-def alternative_assets_extraction(ctx: RunContext, query: str) -> List[str]:
-    result = ctx.deps.search(query)
-    return result
+# @agent.tool
+# def alternative_assets_extraction(ctx: RunContext, query: str, top_k: int) -> List[str]:
+#    result = ctx.deps.search(query, top_k=top_k)
+#    return result

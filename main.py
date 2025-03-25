@@ -25,7 +25,7 @@ class FinalResult(BaseModel):
     account_summary: AccountSummary
     alternative_assets: List[AlternativeAssetDetailItem]
     portfolio_activity: List[PortfolioActivityDetailItem]
-    transactions_summary: List[TransactionsSummary]
+    transactions_summary: TransactionsSummary
     fixed_income: List[FixedIncomeItem]
     trade_activity: List[TradeActivityItem]
 
@@ -34,7 +34,7 @@ class FinalResult(BaseModel):
 class Deps:
     file_path: str = Config.filepath
     doc_processor: DocumentProcessor = DocumentProcessor()
-    search: Callable = doc_processor.vector_db.search
+    search: Callable = doc_processor.search
 
     def __post_init__(self):
         self.doc_processor.process_document(self.file_path)
@@ -50,13 +50,22 @@ manager_agent = Agent(
     4. Understanding complex transaction histories and portfolio activities
     5. Interpreting fixed income securities and their key characteristics
     6. Analyzing trading activities and their impact on portfolio performance
+    7. Reviewing and validating extracted data for completeness, accuracy and consistency
 
-    Your task is to thoroughly extract and analyze all financial records from the provided statement, ensuring accuracy and completeness in the data extraction process. Pay special attention to numerical values, dates, and financial metrics.
-    """
-)
+    Your task is to thoroughly extract and analyze all financial records from the provided statement, ensuring accuracy and completeness in the data extraction process. Pay special attention to numerical values, dates, and financial metrics. You must also validate the extracted data by:
+    - Verifying completeness of all required fields
+    - Validating numerical consistency across sections
+    - Cross-referencing data points between related sections
+    - Checking for reasonable values and proper formatting
+    """)
 
 logger.info("Account Manager Agent Initialized")
 
+
+@manager_agent.tool
+def vector_search(ctx: RunContext, query: str) -> List[str]:
+    result = ctx.deps.search(query)
+    return result
 
 
 @manager_agent.tool
@@ -80,7 +89,7 @@ async def portfolio_activity_extraction(ctx: RunContext, query: str) -> List[Por
     return result.data
 
 @manager_agent.tool
-async def transactions_summary_extraction(ctx: RunContext, query: str) -> List[TransactionsSummary]:
+async def transactions_summary_extraction(ctx: RunContext, query: str) -> TransactionsSummary:
     result = await transactions_summary_agent.run(query, deps=ctx.deps)
     return result.data
 
@@ -98,6 +107,7 @@ async def trade_activity_extraction(ctx: RunContext, query: str) -> List[TradeAc
 async def main():
     result = await manager_agent.run(
             """Please extract all available financial records from the statement including:
+            - Account details (name of account, account number, name of the custodian,  statement date (e.g., '1/1/2023 - 12/31/2023'))
             - Equity details (names, tickers, prices, quantities, values, cost basis, unrealized gains/losses, estimated income, yields)
             - Account summary (short term and long term realized gains/losses, total realized gains/losses, unrealized gains/losses)
             - Alternative asset details (names, prices, quantities, estimated values, costs)
@@ -110,6 +120,7 @@ async def main():
             usage_limits=UsageLimits(request_tokens_limit=10000,response_tokens_limit=5000)
     )
 
+
     debug(result)
     result = json.dumps(result.data.model_dump(), indent=4)
     print(result)
@@ -118,8 +129,10 @@ async def main():
 
 async def extractor_agent(file: str):
     filepath: Path = Path(file)
+    deps = Deps(file_path=filepath)
     result = await manager_agent.run(
             """Please extract all available financial records from the statement including:
+            - Account details (name of account, account number, name of the custodian,  statement date (e.g., '1/1/2023 - 12/31/2023'))
             - Equity details (names, tickers, prices, quantities, values, cost basis, unrealized gains/losses, estimated income, yields)
             - Account summary (short term and long term realized gains/losses, total realized gains/losses, unrealized gains/losses)
             - Alternative asset details (names, prices, quantities, estimated values, costs)
@@ -127,10 +140,11 @@ async def extractor_agent(file: str):
             - Portfolio activity details (settlement dates, types, descriptions, quantities, amounts, realized gains/losses)
             - Fixed income securities (names, maturity dates, coupon rates, prices, quantities, market values)
             - Trade activity (dates, transaction types, descriptions, quantities, prices, amounts)""", 
-            deps=Deps(file_path=filepath),
+            deps=deps,
             result_type=FinalResult,
             usage_limits=UsageLimits(request_tokens_limit=10000,response_tokens_limit=5000)
     )
+
     result = result.data.model_dump()
     return result
 
@@ -138,4 +152,3 @@ async def extractor_agent(file: str):
 if __name__ == "__main__":
     import asyncio
     asyncio.run(main())
-    

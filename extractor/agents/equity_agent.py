@@ -1,5 +1,6 @@
-from pydantic_ai import Agent, RunContext
+from pydantic_ai import Agent, RunContext, Tool
 from extractor.schema import EquityDetail
+from extractor.tools import vector_search
 from  typing import List
 from config import Config
 from extractor import logger
@@ -33,15 +34,24 @@ agent = Agent(
      - Correct identification of negative values
      - Proper handling of any currency symbols or notations
 
-     Format the extracted data according to the EquityDetailItem structure, with each equity position as a separate entry in the equity_details list.    """
+     Format the extracted data according to the EquityDetailItem structure, with each equity position as a separate entry in the equity_details list.    """,
+    tools=[
+        Tool(
+            vector_search,
+            description="""
+            Search for relevant financial statements based on the query.
+            """,
+            takes_ctx=True
+        ),
+    ]
     )
 
 logger.info("Account Equity Agent Initialized")
 
-@agent.tool
-def equity_extraction(ctx: RunContext, query: str) -> List[str]:
-    result = ctx.deps.search(query)
-    return result
+# @agent.tool
+# def equity_extraction(ctx: RunContext, query: str, top_k: int) -> List[str]:
+#     result = ctx.deps.search(query, top_k=top_k)
+#     return result
     
 
 

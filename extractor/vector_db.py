@@ -196,8 +196,8 @@ class DocumentProcessor:
         self.vector_db.initialize(chunks)
         logger.info("Document processing complete: vector DB is populated with cleaned financial data.")
     
-    def search(self, query: str, context_window: int = 5) -> List[str]:
-        results = self.vector_db.search(query, context_window)
+    def search(self, query: str, top_k: int = 5) -> List[str]:
+        results = self.vector_db.search(query, top_k)
         filtered_results = []
         for result in results:
             if result:

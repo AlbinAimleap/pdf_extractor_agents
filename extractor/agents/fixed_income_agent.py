@@ -1,6 +1,7 @@
 
-from pydantic_ai import Agent, RunContext
+from pydantic_ai import Agent, RunContext, Tool
 from extractor.schema import FixedIncomeItem
+from extractor.tools import vector_search
 from typing import List
 from config import Config
 from extractor import logger
@@ -30,12 +31,21 @@ agent = Agent(
     - Proper handling of any currency symbols or notations
 
     Format the extracted data according to the FixedIncomeItem structure, with each fixed income position as a separate entry in the list.
-    """
+    """,
+    tools=[
+        Tool(
+            vector_search,
+            description="""
+            Search for relevant financial statements based on the query.
+            """,
+            takes_ctx=True
+        ),
+    ]
 )
 
 logger.info("Fixed Income Agent Initialized")
 
-@agent.tool
-def fixed_income_extraction(ctx: RunContext, query: str) -> List[str]:
-    result = ctx.deps.search(query)
-    return result
+# @agent.tool
+# def fixed_income_extraction(ctx: RunContext, query: str, top_k: int) -> List[str]:
+#     result = ctx.deps.search(query)
+#     return result

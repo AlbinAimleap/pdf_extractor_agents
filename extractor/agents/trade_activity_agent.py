@@ -1,6 +1,7 @@
 
-from pydantic_ai import Agent, RunContext
+from pydantic_ai import Agent, RunContext, Tool
 from extractor.schema import TradeActivityItem
+from extractor.tools import vector_search
 from typing import List
 from config import Config
 from extractor import logger
@@ -30,12 +31,21 @@ agent = Agent(
     - Proper handling of any currency symbols or notations
 
     Format the extracted data according to the TradeActivityItem structure, with each trade activity as a separate entry in the list.
-    """
+    """,
+    tools=[
+        Tool(
+            vector_search,
+            description="""
+            Search for relevant financial statements based on the query.
+            """,
+            takes_ctx=True
+        ),
+    ]
 )
 
 logger.info("Trade Activity Agent Initialized")
 
-@agent.tool
-def trade_activity_extraction(ctx: RunContext, query: str) -> List[str]:
-    result = ctx.deps.search(query)
-    return result
+# @agent.tool
+# def trade_activity_extraction(ctx: RunContext, query: str) -> List[str]:
+#     result = ctx.deps.search(query)
+#     return result

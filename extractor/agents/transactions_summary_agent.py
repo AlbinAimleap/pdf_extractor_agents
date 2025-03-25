@@ -1,6 +1,7 @@
 
-from pydantic_ai import Agent, RunContext
+from pydantic_ai import Agent, RunContext, Tool
 from extractor.schema import TransactionsSummary
+from extractor.tools import vector_search
 from typing import List
 from config import Config
 from extractor import logger
@@ -22,13 +23,22 @@ agent = Agent(
     - Proper handling of any currency symbols or notations
 
     Format the extracted data according to the TransactionsSummary structure, capturing both beginning and ending cash balances.
-    """
+    """,
+    tools=[
+        Tool(
+            vector_search,
+            description="""
+            Search for relevant financial statements based on the query.
+            """,
+            takes_ctx=True
+        ),
+    ]
 )
 
 logger.info("Transactions Summary Agent Initialized")
 
 
-@agent.tool
-def transactions_summary_extraction(ctx: RunContext, query: str) -> List[str]:
-    result = ctx.deps.search(query)
-    return result
+# @agent.tool
+# def transactions_summary_extraction(ctx: RunContext, query: str) -> List[str]:
+#     result = ctx.deps.search(query)
+#     return result

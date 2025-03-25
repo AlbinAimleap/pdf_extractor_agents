@@ -111,9 +111,13 @@ if uploaded_file and st.session_state.extracted:
             with metrics_container:
                 col1, col2, col3 = st.columns(3)
                 metrics = [
+                    ("Name", st.session_state.account_summary['account_name']),
+                    ("Account Number", st.session_state.account_summary['account_name']),
+                    ("Date of statement", st.session_state.account_summary['date_of_statement']),
+                    ("Name of the Custodian", st.session_state.account_summary['name_of_custodian']),
                     ("Total Realized Gain/Loss", st.session_state.account_summary['total_realized_gain_loss']),
                     ("Short Term G/L", st.session_state.account_summary['total_st_realized_gain_loss']),
-                    ("Long Term G/L", st.session_state.account_summary['total_lt_realized_gain_loss'])
+                    ("Long Term G/L", st.session_state.account_summary['total_lt_realized_gain_loss']),
                 ]
                 for col, (label, value) in zip([col1, col2, col3], metrics):
                     with col:
@@ -150,12 +154,11 @@ if uploaded_file and st.session_state.extracted:
     with tabs[5]:
         st.subheader("💳 Transactions Summary")
         if st.session_state.transactions_summary:
-            for summary in st.session_state.transactions_summary:
-                col1, col2 = st.columns(2)
-                with col1:
-                    display_metric("Beginning Cash Balance", summary.get('beginning_cash_balance', 'N/A'))
-                with col2:
-                    display_metric("Ending Cash Balance", summary.get('ending_cash_balance', 'N/A'))
+            col1, col2 = st.columns(2)
+            with col1:
+                display_metric("Beginning Cash Balance", st.session_state.transactions_summary["beginning_cash_balance"])
+            with col2:
+                display_metric("Ending Cash Balance", st.session_state.transactions_summary["ending_cash_balance"])
         else:
             st.info("🔍 No transactions summary found in the document")
     
